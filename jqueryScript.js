@@ -1,55 +1,76 @@
 $(document).ready(function () {
   var urunler = [];
-  $.ajax({
-    type: "GET",
-    url: "https://dummyjson.com/products",
-    dataType: "json",
-    success: function (data) {
-      // console.log(data);
+  var sepet = [];
+
+  $("#loginForm").submit(function (e) {
+    e.preventDefault();
+    var username = $("#username").val();
+    var password = $("#password").val();
+    fetch("https://dummyjson.com/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: username,
+        password: password,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        // console.log(data);
+        if (data.token) {
+          $("#loginBox").addClass("d-none");
+          $("#navbar").removeClass("d-none");
+          $("#searcBar").removeClass("d-none");
+          $("#urunler").removeClass("d-none");
+          $("#footer").removeClass("d-none");
+        } else {
+          alert("Giriş başarısız.");
+        }
+      });
+  });
+
+  /********************************************************************************************* */
+
+  fetch("https://dummyjson.com/products")
+    .then((resp) => resp.json())
+    .then((data) => {
       urunler = data.products;
       urunleriGoster(urunler);
       kategorileriGoster();
-    },
-  });
+    });
 
   /********************************************************************************************* */
-
-  $("#allProducts").click(function (e) {
-    e.preventDefault();
-    urunleriGoster(urunler);
-  });
-
-  /********************************************************************************************* */
+  // Ürünleri arayüzde gösterme
 
   function urunleriGoster(urunler) {
     $("#productList").empty();
     $.each(urunler, function (_, urun) {
-      //   console.log(urun);
+      // console.log(urun);
       const urunCard = $("<div>").addClass("col-lg-3 col-md-4 col-sm-12 mt-5")
         .html(`
                      <div class="card">
                          <img src="${urun.thumbnail}" class="card-img-top" style="height: 200px;" alt="...">
-                         <div class="card-body" style="background-color: antiquewhite;">
+                         <div class="card-body">
                              <h5 class="card-title text-truncate">${urun.title}</h5>
                              <p class="card-text">${urun.price} $</p>
-                             <button class="btn btn-success btn-add-to-cart" data-id="${urun.id}">Sepete Ekle</button>
+                             <button class="btn btn-outline-success btn-add-to-cart" data-id="${urun.id}">Sepete Ekle</button>
                          </div>
                      </div>
                `);
       $("#productList").append(urunCard);
     });
-
-    $(document).on("click", ".btn-add-to-cart", function () {
-      const urunId = $(this).data("id");
-      const secilenUrun = urunler.find((urun) => urun.id === urunId);
-      // console.log(secilenUrun);
-      urunuSepeteEkle(secilenUrun);
-    });
   }
 
-  /********************************************************************************************* */
+  $(document).on("click", ".btn-add-to-cart", function () {
+    const urunId = $(this).data("id");
+    const secilenUrun = urunler.find((urun) => urun.id === urunId);
+    // console.log(secilenUrun);
+    urunuSepeteEkle(secilenUrun);
+  });
 
-  var sepet = [];
+  /********************************************************************************************* */
+  // Sepete ürün ekleme
+
   function urunuSepeteEkle(secilenUrun) {
     // console.log(secilenUrun);
 
@@ -89,12 +110,13 @@ $(document).ready(function () {
       0
     );
     $("#toplamFiyat").text(toplam);
-    $(document).on("click", ".btn-remove-from-cart", function () {
-      const silinecekId = $(this).data("id");
-      sepettenUrunSilme(silinecekId);
-      sepetiGoster();
-    });
   }
+
+  $(document).on("click", ".btn-remove-from-cart", function () {
+    const silinecekId = $(this).data("id");
+    sepettenUrunSilme(silinecekId);
+    sepetiGoster();
+  });
 
   /********************************************************************************************* */
 
@@ -125,24 +147,23 @@ $(document).ready(function () {
       // console.log(kategoriler);
     }
     for (let kategori of kategoriler) {
-      const kategoriListesi = $("<li>")
-        .addClass("list-group-item mx-2 tiklaGelsin")
-        .css({
-          "background-color": "antiquewhite",
-          "border-radius": "5px",
-          cursor: "pointer",
-        })
+      const liElement = $("<li>");
+      const aElement = $("<a>")
+        .addClass("dropdown-item tiklaGelsin")
+        .attr("href", "#")
         .text(kategori);
-      $("#categoryList").append(kategoriListesi);
+      liElement.append(aElement);
+      $("#categoryList").append(liElement);
     }
-    $(document).on("click", ".tiklaGelsin", function () {
-      let tiklananKategori = $(this).text();
-      let secilenKategori = urunler.filter(
-        (urun) => urun.category === tiklananKategori
-      );
-      urunleriGoster(secilenKategori);
-    });
   }
+
+  $(document).on("click", ".tiklaGelsin", function () {
+    let tiklananKategori = $(this).text();
+    let kategoriUrunleri = urunler.filter(
+      (urun) => urun.category === tiklananKategori
+    );
+    urunleriGoster(kategoriUrunleri);
+  });
 
   /********************************************************************************************* */
 
@@ -155,5 +176,13 @@ $(document).ready(function () {
         urun.description.includes(inputDegeri)
     );
     urunleriGoster(arananDeger);
+    $("#searchInput").val("");
+  });
+
+  /********************************************************************************************* */
+
+  $("#allProducts").click(function (e) {
+    e.preventDefault();
+    urunleriGoster(urunler);
   });
 });
